@@ -14,16 +14,20 @@ class heap:
     # Provided an index i, it will make the element at
     # index i less than the element at index 2*i +1 and 2*i+2
     def heapifyAtIndex(self,index):
+        swapped = False
         br1=2*index+1
         br2=br1+1
         if(br1<self.size):
             if(self.cmp(self.arr[br1],self.arr[index])==1):
                 self.arr[br1],self.arr[index]=self.arr[index],self.arr[br1]
                 self.heapifyAtIndex(br1)
+                swapped = True
         if(br2<self.size):
             if(self.cmp(self.arr[br2],self.arr[index])==1):
                 self.arr[br2],self.arr[index]=self.arr[index],self.arr[br2]
                 self.heapifyAtIndex(br2)
+                swapped = True
+        return swapped
         
 
 
@@ -70,8 +74,10 @@ class heap:
         self.arr.append(data)
         self.size+=1
         i=self.size-1
+        i= (i-1)//2
         while(i>=0):
-            self.heapifyAtIndex(i)
+            if(not self.heapifyAtIndex(i)):
+                break
             i=(i-1)//2
     
 if(__name__ == "__main__"):
