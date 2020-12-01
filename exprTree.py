@@ -6,17 +6,19 @@ class Node:
         self.data = data
 
 def isASym(val):
-    if val in ["+","-","*","/","^"]:
+    if val in ["+","-","*","/","^","%"]:
         return True
     return False
 
 def getPriority(val):
     if(val=="+" or val =="-"):
         return 3
-    elif(val=="/" or val =="*"):
+    elif(val=="/"  or val =="*"  or val == "%"):
         return 2
-    else:
+    elif(val == "^") :
         return 1
+    else:
+        return 0
 
 def main():
     inp=[]
@@ -31,9 +33,15 @@ def main():
         elif(exprString[i] == ' '):
             i+=1
             continue
-        else:
+        elif(ord('0')<=ord(exprString[i]) <= ord('9')):
             tmp=""
             while(i<len(exprString) and ord('0')<=ord(exprString[i])<=ord('9')):
+                tmp+=exprString[i]
+                i+=1
+            inp.append(tmp)
+        else:
+            tmp=""
+            while( i<len(exprString) and (exprString[i] not in ["(",")"," "] and not isASym(exprString[i]))):
                 tmp+=exprString[i]
                 i+=1
             inp.append(tmp)
@@ -123,7 +131,7 @@ def printPreOrder(exprTree):
 
 # inp = "2 + 3 - 4 * 5 + ( 6 ^ 2 ) * 8 / 9 / 10 * 4 + 5".split()
 inp = main()
-a= getExprTree(inp)
+a = getExprTree(inp)
 printPreOrder(a)
 print()
 printPostOrder(a)

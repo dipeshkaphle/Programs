@@ -28,10 +28,9 @@ class heap:
                 self.heapifyAtIndex(br2)
                 swapped = True
         return swapped
-        
 
 
-    # Heapifying 
+    # Heapifying
     # will start from the index size/2 and heapify every node
     # FInally the entire array is made into the desired heap
     # When we calculate the average cost of this, it turns out to be
