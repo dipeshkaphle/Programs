@@ -22,7 +22,7 @@ def getPriority(val):
 
 def main():
     inp=[]
-    exprString=input()
+    exprString=input("Enter The Infix Expression: ")
     i=0
     tmp=""
     while(i< len(exprString)):
