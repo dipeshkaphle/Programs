@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iostream>
+#include <list>
 #include <numeric>
 #include <optional>
 #include <string>
@@ -28,5 +29,23 @@ private:
   size_t max_size;
 };
 
-#include "LRU_Cache.cpp"
+template <typename T> class LRU_CacheLL {
+public:
+  LRU_CacheLL() = delete;
+  LRU_CacheLL(size_t cache_size) : max_size(cache_size) {}
+  access_status access(T &&key);
+  access_status access(const T &key);
+  void print_cache();
+  std::optional<T> least_recently_used();
+  std::optional<T> most_recently_used();
+
+private:
+  std::list<T> cache;
+  std::unordered_map<T, decltype(cache.begin())> keys;
+  size_t max_size;
+};
+
+#include "LRU_CacheWithLL.cpp"
+
+#include "LRU_CacheVector.cpp"
 #endif // LRU_CACHE_H

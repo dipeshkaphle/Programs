@@ -6,7 +6,7 @@
 int main() {
   std::cout << "Hello"
             << "\n";
-  LRU_Cache<int> cache(static_cast<size_t>(4));
+  LRU_CacheLL<int> cache(static_cast<size_t>(4));
   cache.access(1);
   cache.access(2);
   cache.access(3);
