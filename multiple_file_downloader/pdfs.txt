@@ -1,0 +1,13 @@
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Slides%20Algorithms-Introduction.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Euclidean%20algorithm%20for%20gcd.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Slides%20MaxFind%20algorithm%20analysis.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Optimal%20Min,%20Max%20Finding.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Backtracking-Finding%20MIS%20in%20a%20graph.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Bin%20Packing%20FFD%20heuristics.pdf
+http://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Kleinberg-HITS%20Brin%20and%20Page-PageRank.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Introduction-Revised-Dec2020.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/GAlgorithms-Coloring-KVI.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/GAlgorithms-MIS-KVI.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/GA-TT-ColoringEx-Dec2020.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/Lecture-Fibonacci-nos.pdf
+https://www.nitt.edu/home/academics/departments/cse/faculty/kvi/HyperCubePE-Dec2020.pdf
