@@ -5,7 +5,7 @@ def coalesce(str)
   dict = {}
   dict.default = 0
   str.each_char { |c| dict[c] += 1 }
-  dict.map { |k, v| k.to_s + v.to_s.each_char.map { |x| unicodemap[x.to_i] }.join }.join
+  dict.map { |k, v| k.to_s + v.to_s.each_char.map { |x| unicodemap[x.to_i] }.join }.join('.')
 end
 
 def main
@@ -26,7 +26,7 @@ def main
   ans.each do |x|
     dict[x] += 1
   end
-  puts dict.map { |x, y| y != 1 ? y.to_s + coalesce(x.to_s) : coalesce(x.to_s) }.join('+')
+  puts dict.map { |x, y| y != 1 ? "#{y}.#{coalesce(x.to_s)}" : coalesce(x.to_s) }.join('+')
 end
 
 main
