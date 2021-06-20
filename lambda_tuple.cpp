@@ -41,7 +41,9 @@ public:
       : data(make_tuple<Ts...>(Ts{}...)) {}
 
   template <typename... Args>
-  Tuple(Args &&...args)
+  Tuple(Args &&...args) requires(
+      ... &&std::is_constructible_v<Ts, Args>) // idk if this requires is doing
+                                               // what i want it to do
       : data(make_tuple<Ts...>((std::forward<Ts>(args))...)) {}
 
   template <typename Self, typename Fn>
@@ -67,10 +69,10 @@ int main() {
   std::cout << '\n';
   int a = 10;
   float b = 2.5;
-  Tuple<int, int &, float> tup(a, a, b);
+  Tuple<int, const char *, float> tup(a, "Hii", b);
   apply_func(tup, printer);
   std::cout << '\n';
-  tup.get<1>() = 11;
+  tup.get<0>() = 11;
   std::cout << a << '\n';
   std::cout << '\n';
 }
