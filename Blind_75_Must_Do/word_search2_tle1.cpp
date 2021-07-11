@@ -1,0 +1,106 @@
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <stack>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+using i32 = int;
+using i64 = long long;
+using u32 = unsigned;
+using u64 = size_t;
+using ll = long long;
+template <typename T> using Vec = std::vector<T>;
+template <typename T> using o_set = std::set<T>;
+template <typename T> using u_set = std::unordered_set<T>;
+template <typename K, typename V> using u_map = std::unordered_map<K, V>;
+template <typename K, typename V> using o_map = std::map<K, V>;
+using namespace std;
+struct Node {
+  bool is_end = false;
+  unordered_map<char, int> mp;
+};
+struct Trie {
+  vector<Node> nodes;
+  int ptr;
+  Trie() {
+    nodes.assign(2, Node());
+    ptr = 2;
+  }
+  void insert(string &s) {
+    int cur = 1;
+    for (char c : s) {
+      if (!nodes[cur].mp.count(c)) {
+        nodes[cur].mp[c] = ptr++;
+        nodes.emplace_back();
+      }
+      cur = nodes[cur].mp[c];
+    }
+    nodes[cur].is_end = true;
+  }
+  bool exists(string &s) {
+    int cur = 1;
+    for (char c : s) {
+      if (!nodes[cur].mp.count(c)) {
+        return false;
+      }
+      cur = nodes[cur].mp[c];
+    }
+    return nodes[cur].is_end;
+  }
+};
+class Solution {
+public:
+  vector<vector<bool>> vis;
+  int m;
+  int n;
+  void dfs(int i, int j, vector<vector<char>> &board, string &cur_s, Trie &tr) {
+    /*
+     * question states that the length of word cant be more than 10
+     */
+    if (cur_s.size() > 10) {
+      return;
+    }
+    tr.insert(cur_s);
+    vis[i][j] = true;
+    int dx[] = {-1, 1, 0, 0};
+    int dy[] = {0, 0, -1, 1};
+    for (int k = 0; k < 4; k++) {
+      int x = dx[k] + i;
+      int y = dy[k] + j;
+      if (x >= 0 && y >= 0 && x < m && y < n && !vis[x][y]) {
+        cur_s.push_back(board[x][y]);
+        dfs(x, y, board, cur_s, tr);
+        cur_s.pop_back();
+      }
+    }
+    vis[i][j] = false;
+  }
+  vector<string> findWords(vector<vector<char>> &board, vector<string> &words) {
+    Trie t;
+    m = board.size();
+    n = board.front().size();
+    vis = vector<vector<bool>>(m, vector<bool>(n, false));
+    string cur_s;
+    for (int i = 0; i < m; i++)
+      for (int j = 0; j < n; j++) {
+        cur_s += board[i][j];
+        dfs(i, j, board, cur_s, t);
+        cur_s.pop_back();
+      }
+    vector<string> ans;
+    for (auto &s : words)
+      if (t.exists(s))
+        ans.push_back(s);
+    return ans;
+  }
+};
+
+int main() {}
