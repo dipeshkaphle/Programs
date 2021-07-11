@@ -25,6 +25,26 @@ template <typename K, typename V> using o_map = std::map<K, V>;
 using namespace std;
 
 // union find with rank
+/*
+ * Rank is basically the upper bound for the number of times
+ * we need to call find_set inorder to reach the group head
+ *
+ * Lets say I have a group 1->2 and another group 3<- 4
+ * Now I union these two
+ * Currently I need maximum of 1 level climbing up to reach the head for both
+ * groups When there's union operation we make it
+ *
+ * 1-> 2
+ * ^
+ * |
+ * 3 <-  4
+ *
+ * Now this led to the max climbing to be 2 and hence rank was increased
+ * So the rank only ever increases when the groups we're merging have the same
+ * rank , otherwise it wouldnt need one extra hop
+ *
+ *
+ */
 unordered_map<int, int> par;
 unordered_map<int, int> rnk;
 
