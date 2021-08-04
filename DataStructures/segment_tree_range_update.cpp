@@ -47,7 +47,7 @@ struct seg_tree {
     lazy[ind] = 0;
   }
 
-  void range_update(int l, int r, int val) {
+  inline void range_update(int l, int r, int val) {
     range_update(l, r, 0, n - 1, 0, val);
   }
   void range_update(int l, int r, int tl, int tr, int ind, int delta) {
@@ -65,12 +65,12 @@ struct seg_tree {
     }
   }
 
-  ll query(int l, int r) { return query(l, r, 0, n - 1, 0); }
+  inline ll query(int l, int r) { return query(l, r, 0, n - 1, 0); }
 
   ll query(int l, int r, int tl, int tr, int ind) {
+    prop(ind, tl, tr);
     if (l > r)
       return 0;
-    prop(ind, tl, tr);
     if (tl == l && tr == r) {
       return t[ind];
     } else {

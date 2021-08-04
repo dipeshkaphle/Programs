@@ -28,7 +28,6 @@ struct seg_tree {
   using ret_type = long long;
   using combine = std::plus<ret_type>;
   using update_func = std::plus<ret_type>;
-
   /*
    * attributes
    */
@@ -36,7 +35,7 @@ struct seg_tree {
   vector<ret_type> t;
   size_t n;
 
-  seg_tree(size_t n) : n(4 * n) { t.assign(this->n + 5, 0); }
+  seg_tree(size_t n_) : n(n_) { t.assign(this->n * 4 + 5, 0); }
   seg_tree(const vector<ret_type> &vec) : seg_tree(vec.size()) {
     build(vec, 0, 0, n - 1);
   }
@@ -51,6 +50,9 @@ struct seg_tree {
     }
   }
 
+  inline void point_update(size_t index, ret_type new_val) {
+    point_update(index, new_val, 0, 0, n - 1);
+  }
   void point_update(size_t ind, ret_type new_val, size_t t_ind, size_t t_l,
                     size_t t_r) {
     if (t_l == t_r) {
@@ -65,14 +67,17 @@ struct seg_tree {
     }
   }
 
+  inline ret_type range_query(size_t l, size_t r) {
+    return range_query(l, r, 0, n - 1, 0);
+  }
   ret_type range_query(size_t l, size_t r, size_t t_l, size_t t_r, size_t ind) {
     if (l > r)
       return default_val;
     if (t_l == l && t_r == r)
       return t[ind];
     size_t m = (t_l + t_r) / 2;
-    auto x = range_query(l, r, t_l, min(t_r, m), 2 * ind + 1);
-    auto y = range_query(l, r, max(t_l, m + 1), t_r, 2 * ind + 2);
+    auto x = range_query(l, min(r, m), t_l, m, 2 * ind + 1);
+    auto y = range_query(max(m + 1, l), r, m + 1, t_r, 2 * ind + 2);
     return combine()(x, y);
   }
 };
