@@ -10,6 +10,15 @@
 #include <thread>
 #include <unistd.h>
 
+/*
+ * USAGE :
+ *
+ * 1) Run this server
+ * 2) Run telnet localhost 3000 on another terminal
+ * 3) See the output printed on another terminal ofc
+ *
+ */
+
 #define HANDLE_SEND_RECV_ERRORS(st)                                            \
   if ((st) == -1) {                                                            \
     printf("Error occured in send or recv\n");                                 \
