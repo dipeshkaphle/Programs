@@ -88,6 +88,7 @@ repli lst n = concatMap (replicate n) lst
 {- Problem 16
 
 >>> dropEvery "abcdefghik" 3
+"abdeghk"
 
  -}
 
@@ -105,6 +106,7 @@ dropEvery s n =
 {- Probblem 17
 
 >>>  split "abcdefg" 3
+("abc","defg")
 
  -}
 
@@ -122,6 +124,9 @@ g lst n =
 
 {- Problem 18
 
+>>> slice "abcdef" 2 4
+"bcd"
+
  -}
 
 slice lst l r =
@@ -135,6 +140,37 @@ slice lst l r =
       []
       (zip [1 ..] lst)
 
-{-
- -
+{- Problem 19
+
+>>> rotate ['a','b','c','d','e','f','g','h'] 3
+"defghabc"
+
+>>> rotate ['a','b','c','d','e','f','g','h'] (-2)
+"ghabcdef"
+
  -}
+
+rotate lst n =
+  let n' = mod n (length lst)
+      (left, right) = split lst n'
+      (lr, rr) = (reverse left, reverse right)
+   in reverse (lr ++ rr)
+
+{- Problem 20
+
+>>> removeAt 2 "abcd"
+('b',"acd")
+
+ -}
+
+removeAt n lst =
+  let (lft, rgt) =
+        foldl
+          ( \(l, r) (ind, x) ->
+              if ind == n
+                then (x, r)
+                else (l, x : r)
+          )
+          ('@', [])
+          (zip [1 ..] lst)
+   in (lft, reverse rgt)
