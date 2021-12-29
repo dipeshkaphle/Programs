@@ -1,18 +1,26 @@
-use std::io::stdin;
+use std::{io::stdin, mem::replace};
 
 use crate::MEMORY_SIZE;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum Change {
+    Incr(usize),
+    Decr(usize),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum ByteCode {
     Nop,
-    DataPointerIncr(usize), // >
-    DataPointerDecr(usize), //<
-    DataIncr(usize),        // +
-    DataDecr(usize),        // -
-    Write,                  // Write Stdout
-    Read,                   // Read Stdin
-    JZ,                     //  Jump Zero
-    JNZ,                    // Jump not Zero
+    DataPointerIncr(usize),      // >
+    DataPointerDecr(usize),      //<
+    DataIncr(usize),             // +
+    DataDecr(usize),             // -
+    Write,                       // Write Stdout
+    Read,                        // Read Stdin
+    JZ,                          //  Jump Zero
+    JNZ,                         // Jump not Zero
+    SETZERO,                     // Set Current Cell to Zero , [+] or [-]
+    MoveInStepUntilZero(Change), // Moves the data_counter in certain increments until it encounters a cell which is zero [>>>>] or [<<<<] instructions
 }
 
 pub struct ByteCodeProgram {
@@ -47,6 +55,65 @@ impl ByteCodeProgram {
             pc += 1;
         }
         jumptable
+    }
+
+    fn is_set_zero(instructions: &[ByteCode]) -> bool {
+        if instructions.len() >= 3 {
+            match (instructions[0], instructions[1], instructions[2]) {
+                (ByteCode::JZ, ByteCode::DataIncr(_) | ByteCode::DataDecr(_), ByteCode::JNZ) => {
+                    return true;
+                }
+                _ => {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    fn is_move_until_zero(instructions: &[ByteCode]) -> Option<Change> {
+        if instructions.len() >= 3 {
+            match (instructions[0], instructions[1], instructions[2]) {
+                (ByteCode::JZ, ByteCode::DataPointerIncr(x), ByteCode::JNZ) => {
+                    return Some(Change::Incr(x));
+                }
+                (ByteCode::JZ, ByteCode::DataPointerDecr(x), ByteCode::JNZ) => {
+                    return Some(Change::Decr(x));
+                }
+                _ => {
+                    return None;
+                }
+            }
+        }
+        return None;
+    }
+
+    pub fn opt_pass_1(&mut self) {
+        //
+        let mut index = 0;
+        let prog_size = self.instructions.len();
+        let mut new_instructions = vec![];
+        while index < prog_size {
+            new_instructions.push(match self.instructions[index] {
+                ByteCode::JZ => {
+                    if Self::is_set_zero(&self.instructions[index..]) {
+                        index += 2;
+                        ByteCode::SETZERO
+                    } else {
+                        let change = Self::is_move_until_zero(&self.instructions[index..]);
+                        if let Some(chng) = change {
+                            index += 2;
+                            ByteCode::MoveInStepUntilZero(chng)
+                        } else {
+                            ByteCode::JZ
+                        }
+                    }
+                }
+                instr => instr,
+            });
+            index += 1;
+        }
+        let _ = replace(&mut self.instructions, new_instructions);
     }
     pub fn eval(&self) {
         let mut memory = vec![0 as u8; MEMORY_SIZE];
@@ -88,6 +155,18 @@ impl ByteCodeProgram {
                 ByteCode::JNZ => {
                     if memory[data_counter] != 0 {
                         pc = jumptable[pc];
+                    }
+                }
+                ByteCode::SETZERO => {
+                    memory[data_counter] = 0;
+                }
+                ByteCode::MoveInStepUntilZero(chng) => {
+                    let cur_dc = &mut data_counter;
+                    while memory[*cur_dc] != 0 {
+                        *cur_dc = match chng {
+                            Change::Incr(x) => *cur_dc + x,
+                            Change::Decr(x) => *cur_dc - x,
+                        }
                     }
                 }
                 _ => unreachable!(),
@@ -320,6 +399,10 @@ mod tests {
         +[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<
         <<<<<]]>>>]
             "#;
-        Parser::parse_to_bytecode(code.to_owned()).eval();
+        // Parser::parse_to_bytecode(code.to_owned()).eval();
+        let mut prog = Parser::parse_to_bytecode(code.to_owned());
+        prog.opt_pass_1();
+        // println!("{:?}", prog.instructions);
+        prog.eval();
     }
 }
