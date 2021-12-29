@@ -2,24 +2,38 @@ use std::io::stdin;
 
 use crate::MEMORY_SIZE;
 
-pub struct Program {
-    pub instructions: Vec<char>,
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum ByteCode {
+    Nop,
+    DataPointerIncr(usize), // >
+    DataPointerDecr(usize), //<
+    DataIncr(usize),        // +
+    DataDecr(usize),        // -
+    Write,                  // Write Stdout
+    Read,                   // Read Stdin
+    JZ,                     //  Jump Zero
+    JNZ,                    // Jump not Zero
 }
-impl Program {
-    pub fn compute_jumptable(&self) -> Vec<usize> {
+
+pub struct ByteCodeProgram {
+    pub instructions: Vec<ByteCode>,
+}
+
+impl ByteCodeProgram {
+    fn compute_jumptable(&self) -> Vec<usize> {
         let mut pc = 0;
         let prog_size = self.instructions.len();
         let mut jumptable = vec![0; prog_size];
         while pc < prog_size {
             let instr = self.instructions[pc];
-            if instr == '[' {
+            if instr == ByteCode::JZ {
                 let mut nesting = 1;
                 let mut seek = pc;
                 while nesting > 0 && (seek + 1) < prog_size {
                     seek += 1;
-                    if self.instructions[seek] == ']' {
+                    if self.instructions[seek] == ByteCode::JNZ {
                         nesting -= 1;
-                    } else if self.instructions[seek] == '[' {
+                    } else if self.instructions[seek] == ByteCode::JZ {
                         nesting += 1;
                     }
                 }
@@ -34,8 +48,6 @@ impl Program {
         }
         jumptable
     }
-
-    /// https://eli.thegreenplace.net/2017/adventures-in-jit-compilation-part-1-an-interpreter/
     pub fn eval(&self) {
         let mut memory = vec![0 as u8; MEMORY_SIZE];
         let mut data_counter = 0;
@@ -44,34 +56,36 @@ impl Program {
         while pc < self.instructions.len() {
             let instr = self.instructions[pc];
             match instr {
-                '>' => {
-                    data_counter += 1;
+                ByteCode::DataPointerIncr(x) => {
+                    data_counter += x;
                 }
-                '<' => {
-                    data_counter -= 1.min(data_counter);
+                ByteCode::DataPointerDecr(x) => {
+                    data_counter -= x.min(data_counter);
                 }
-                '+' => {
-                    memory[data_counter] += 1;
+                ByteCode::DataIncr(x) => {
+                    memory[data_counter] = (memory[data_counter] as usize + x) as u8;
                 }
-                '-' => {
-                    memory[data_counter] -= 1;
+                ByteCode::DataDecr(x) => {
+                    memory[data_counter] = (memory[data_counter] as usize
+                        - x.min(memory[data_counter] as usize))
+                        as u8;
                 }
-                '.' => {
+                ByteCode::Write => {
                     print!("{}", memory[data_counter] as char);
                 }
-                ',' => {
+                ByteCode::Read => {
                     let mut inp = String::new();
                     stdin()
                         .read_line(&mut inp)
                         .expect("Failed to read from stdin");
                     memory[data_counter] = inp.as_bytes()[0];
                 }
-                '[' => {
+                ByteCode::JZ => {
                     if memory[data_counter] == 0 {
                         pc = jumptable[pc];
                     }
                 }
-                ']' => {
+                ByteCode::JNZ => {
                     if memory[data_counter] != 0 {
                         pc = jumptable[pc];
                     }
@@ -81,6 +95,7 @@ impl Program {
             pc += 1;
         }
         println!("");
+        //
     }
 }
 
@@ -91,7 +106,7 @@ mod tests {
 
     #[test]
     fn test() {
-        Parser::parse(
+        Parser::parse_to_bytecode(
             r#"
             ++       Cell c0 = 2
             > +++++  Cell c1 = 5
@@ -154,7 +169,7 @@ mod tests {
         >++.                    And finally a newline from Cell #6
         "#;
 
-        Parser::parse(hello_world.to_owned()).eval();
+        Parser::parse_to_bytecode(hello_world.to_owned()).eval();
     }
 
     #[test]
@@ -305,6 +320,6 @@ mod tests {
         +[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<
         <<<<<]]>>>]
             "#;
-        Parser::parse(code.to_owned()).eval();
+        Parser::parse_to_bytecode(code.to_owned()).eval();
     }
 }
