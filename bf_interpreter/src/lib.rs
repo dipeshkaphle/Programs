@@ -1,7 +1,9 @@
 const MEMORY_SIZE: usize = 30000;
 pub mod bf;
 pub mod bytecode_bf;
+pub mod jit_utils;
 pub mod parser;
+pub mod simple_jit;
 
 #[cfg(test)]
 mod tests {
