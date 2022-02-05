@@ -112,7 +112,6 @@ impl SimpleJit {
     }
 }
 
-//Doesnt work mostly F
 #[cfg(test)]
 mod tests {
 

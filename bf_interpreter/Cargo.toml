@@ -11,3 +11,4 @@ path="src/main.rs"
 
 [dependencies]
 nix = "0.23.1"
+dynasmrt = "1.2.1"

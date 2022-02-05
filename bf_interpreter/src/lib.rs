@@ -2,6 +2,7 @@ const MEMORY_SIZE: usize = 30000;
 pub mod bf;
 pub mod bytecode_bf;
 pub mod jit_utils;
+pub mod optbytecode_jit;
 pub mod parser;
 pub mod simple_jit;
 
