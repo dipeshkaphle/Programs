@@ -26,22 +26,20 @@ macro_rules! gep {
 }
 
 pub struct LlvmJit {
-    // context: inkwell::context::Context,
-    // module: Option<inkwell::module::Module<'ctx>>,
-    // builder: Option<inkwell::builder::Builder<'ctx>>,
-    // _marker: PhantomData<&'ctx ()>,
+    context: inkwell::context::Context,
 }
 
 impl LlvmJit {
-    fn jit_instr<'a>(
+    fn jit_instr<'a, 'b>(
+        &'b self,
         instruction: ByteCode,
-        context: &'a Context,
-        module: &'a inkwell::module::Module,
-        builder: &'a inkwell::builder::Builder,
+        module: &'a inkwell::module::Module<'b>,
+        builder: &'a inkwell::builder::Builder<'b>,
         dataptr_addr: PointerValue,
         memory: PointerValue,
-        mut matching_blocks: Vec<(BasicBlock<'a>, BasicBlock<'a>)>,
-    ) -> Vec<(BasicBlock<'a>, BasicBlock<'a>)> {
+        matching_blocks: &'a mut Vec<(BasicBlock<'b>, BasicBlock<'b>)>,
+    ) {
+        let context = &self.context;
         match instruction {
             ByteCode::Nop => {}
             ByteCode::DataPointerIncr(offset) | ByteCode::DataPointerDecr(offset) => {
@@ -199,86 +197,45 @@ impl LlvmJit {
                 //
                 // (ByteCode::JZ, ByteCode::DataPointerIncr(x), ByteCode::JNZ)
                 // (ByteCode::JZ, ByteCode::DataPointerDecr(x), ByteCode::JNZ)
-                let matching_blocks = Self::jit_instr(
+                self.jit_instr(
                     ByteCode::JZ,
-                    context,
+                    // context,
                     module,
                     builder,
                     dataptr_addr,
                     memory,
                     matching_blocks,
                 );
-                let matching_blocks = Self::jit_instr(
+                self.jit_instr(
                     match chng {
                         Change::Incr(x) => ByteCode::DataPointerIncr(x),
                         Change::Decr(x) => ByteCode::DataPointerDecr(x),
                     },
-                    context,
+                    // context,
                     module,
                     builder,
                     dataptr_addr,
                     memory,
                     matching_blocks,
                 );
-                let matching_blocks = Self::jit_instr(
+                self.jit_instr(
                     ByteCode::JNZ,
-                    context,
+                    // context,
                     module,
                     builder,
                     dataptr_addr,
                     memory,
                     matching_blocks,
                 );
-                return matching_blocks;
-                // let starting_bb = context
-                //     .append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "loop_start");
-                // builder.position_at_end(starting_bb);
-                // let dataptr = load!(builder, dataptr_addr, context.i64_type());
-                // let elem_addr = gep!(
-                //     builder,
-                //     memory,
-                //     dataptr.into_int_value(),
-                //     context.i64_type()
-                // );
-                // let elem = load!(builder, elem_addr, context.i8_type());
-                // let compare = builder.build_int_compare(
-                //     inkwell::IntPredicate::NE,
-                //     elem.into_int_value(),
-                //     context.i8_type().const_int(0, false),
-                //     "cmp_0",
-                // );
-                // let ending_bb = context
-                //     .append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "loop_end");
-                // // let cond_branch =
-                // builder.build_conditional_branch(compare.into(), starting_bb, ending_bb);
-                // // builder.position_before(&cond_branch);
-                // builder.position_at_end(ending_bb);
-                // let new_dataptr = match chng {
-                //     Change::Incr(x) => builder.build_int_add(
-                //         elem.into_int_value(),
-                //         context.i8_type().const_int(x as u64, false),
-                //         "increment",
-                //     ),
-                //     Change::Decr(x) => builder.build_int_sub(
-                //         elem.into_int_value(),
-                //         context.i8_type().const_int(x as u64, false),
-                //         "increment",
-                //     ),
-                // };
-                // builder.build_store(dataptr_addr, new_dataptr);
-                // builder.build_unconditional_branch(starting_bb);
             }
         }
-        matching_blocks
     }
-    pub fn jit(instructions: Vec<ByteCode>) {
-        // let mut open_bracket_stack = vec![];
-
+    pub fn jit(&self, instructions: Vec<ByteCode>) {
         // - Setup context
         // - Setup module
         // - Setup builder
         // - Setup execution engine
-        let context = Context::create();
+        // let context = Context::create();
         // let module = context.create_module("bf_module");
         // let builder = context.create_builder();
 
@@ -287,6 +244,8 @@ impl LlvmJit {
         //     .expect("Failed to create execution_engine");
 
         // - Create function for the bf program
+        // let context = context::create();
+        let context = &self.context;
         let void_type = context.void_type();
         let module = context.create_module("bf_module");
         let builder = context.create_builder();
@@ -330,65 +289,46 @@ impl LlvmJit {
 
         let mut matching_blocks = vec![];
         for instr in instructions {
-            let new_blocks = Self::jit_instr(
+            self.jit_instr(
                 instr,
-                &context,
                 &module,
                 &builder,
                 dataptr_addr,
                 memory,
-                matching_blocks,
+                &mut matching_blocks,
             );
-            matching_blocks = new_blocks;
         }
 
         println!("{}", module.to_string());
     }
-    // pub fn get_module(&'ctx self) -> &inkwell::module::Module<'ctx> {
-    //     self.module
-    //         .as_ref()
-    //         .expect("Should have been initialized beforehand")
-    // }
-    // pub fn get_builder(&'ctx self) -> &inkwell::builder::Builder<'ctx> {
-    //     self.builder
-    //         .as_ref()
-    //         .expect("Should have been initialized beforehand")
-    // }
-    // pub fn new(context: Context) -> LlvmJit {
-    // let context = Context::create();
-    // let module = context.create_module(&module_name);
-    // let builder = context.create_builder();
-    // Self { }
-    // let module = context.create_module(&module_name);
-    // let builder = context.create_builder();
-    // let module = compiler.context.create_module(&compiler.module_name);
-    // compiler.module = Some(module);
-    // let builder = compiler.context.create_builder();
-    // compiler.builder = Some(builder);
-    // compiler
-    // }
     pub fn parse_and_run(src_code: String) {
         // Get the program parsed to bytecode
         let prog = Parser::parse_to_bytecode(src_code);
-        // println!("{:?}", prog.instructions);
-        LlvmJit::jit(prog.instructions);
-        // compiler.jit(prog.instructions);
+        let context = Context::create();
+        let compiler = Self { context };
+
+        compiler.jit(prog.instructions);
     }
 }
 
 #[cfg(test)]
 mod tests {
 
+    use inkwell::context::Context;
+
     use super::ByteCode;
     use super::LlvmJit;
 
     #[test]
     fn test_emitting() {
+        let compiler = LlvmJit {
+            context: Context::create(),
+        };
         // LlvmJit::jit(vec![ByteCode::DataIncr(10)]); // Works
 
         // LlvmJit::jit(vec![ByteCode::DataPointerIncr(10)]); // Works
 
-        LlvmJit::jit(vec![ByteCode::MoveInStepUntilZero(
+        compiler.jit(vec![ByteCode::MoveInStepUntilZero(
             crate::bytecode_bf::Change::Decr(1),
         )]); // Works
     }
