@@ -102,11 +102,13 @@ impl BytecodeJit {
                         Change::Incr(x) => {
                             my_dynasm!(ops
                                     ; add BYTE [a_current + 0] , *x as _
+                                    // ; jmp =>start_loop(should have this??)
                             );
                         }
                         Change::Decr(x) => {
                             my_dynasm!(ops
                                     ; sub BYTE [a_current + 0] , *x as _
+                                    // ; jmp =>start_loop (should jump back too?)
                             );
                         }
                     }
