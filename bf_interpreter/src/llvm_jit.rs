@@ -7,6 +7,20 @@ use inkwell::targets::InitializationConfig;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::PointerValue;
 use std::alloc::Layout;
+use std::io::Read;
+use std::path::Path;
+
+extern "C" fn putchar(c: u32) -> u32 {
+    unsafe {
+        print!("{}", char::from_u32_unchecked(c));
+    }
+    return c;
+}
+extern "C" fn getchar() -> u32 {
+    let mut buf = vec![0];
+    std::io::stdin().read_exact(&mut buf).unwrap();
+    return buf[0] as u32;
+}
 
 const JIT_FUNC_NAME: &'static str = "__llvm_jit";
 const PUTCHAR: &'static str = "putchar";
@@ -134,10 +148,10 @@ impl LlvmJit {
                 builder.build_store(elem_addr, elem);
             }
             ByteCode::JZ => {
-                let loop_body_bb = context
-                    .append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "loop_body");
-                let loop_end_bb = context
-                    .append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "loop_end");
+                let loop_body_bb =
+                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "body");
+                let loop_end_bb =
+                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "end");
                 builder.position_at_end(loop_body_bb);
                 let dataptr = load!(builder, dataptr_addr, context.i64_type());
                 let offset = gep!(
@@ -264,7 +278,7 @@ impl LlvmJit {
         module.add_function(
             GETCHAR,
             // void_type.fn_type(&[BasicMetadataTypeEnum::IntType(context.i32_type())], false),
-            void_type.fn_type(&[context.i32_type().into()], false),
+            context.i32_type().fn_type(&[], false),
             Some(Linkage::External),
         );
         let entry = context.append_basic_block(function, "entry");
@@ -302,27 +316,20 @@ impl LlvmJit {
         }
         builder.build_return(None);
 
-        // unsafe {
-        //     LLVM_InitializeNativeTarget();
-        //     LLVM_InitializeNativeAsmPrinter();
-        // }
+        // println!("{}", module.to_string());
 
         let execution_engine = module
             .create_jit_execution_engine(inkwell::OptimizationLevel::None)
             .expect("Failed to create execution engine");
 
+        println!("About to get {}", JIT_FUNC_NAME);
         unsafe {
             let bf_fn = execution_engine
                 .get_function::<unsafe extern "C" fn() -> ()>(JIT_FUNC_NAME)
                 .unwrap();
+            println!("Calling {}", JIT_FUNC_NAME);
             bf_fn.call();
-            // let return_value = test_fn.call();
-            // assert_eq!(return_value, 64.0);
         }
-        // execution_engine.get_function()
-
-        // module.create_ji
-        // println!("{}", module.to_string());
     }
     pub fn parse_and_run(src_code: String) {
         // Get the program parsed to bytecode
@@ -349,13 +356,22 @@ mod tests {
         let compiler = LlvmJit {
             context: Context::create(),
         };
-        // LlvmJit::jit(vec![ByteCode::DataIncr(10)]); // Works
 
-        // LlvmJit::jit(vec![ByteCode::DataPointerIncr(10)]); // Works
+        // prints 'hi\n' correctly(means I'm messing up the jump instructions mostly)
+        //
+        // TODO: I think not all basic blocks end with terminator instruction(have to take care of this during codegen)
+        compiler.jit(vec![
+            ByteCode::DataIncr(104), //'h'
+            ByteCode::Write,
+            ByteCode::DataIncr(1), // 'i'
+            ByteCode::Write,
+            ByteCode::DataPointerIncr(1),
+            ByteCode::DataIncr(10),
+            ByteCode::Write,
+        ]); // Works
 
-        compiler.jit(vec![ByteCode::MoveInStepUntilZero(
-            crate::bytecode_bf::Change::Decr(1),
-        )]); // Works
+        // This also works fine so putchar/getchar workf ine
+        // compiler.jit(vec![ByteCode::Read, ByteCode::Write]); // Works
     }
 
     #[test]
