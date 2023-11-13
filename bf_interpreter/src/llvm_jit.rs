@@ -3,6 +3,7 @@ use crate::{parser::Parser, MEMORY_SIZE};
 use inkwell::basic_block::BasicBlock;
 use inkwell::context::Context;
 use inkwell::module::Linkage;
+use inkwell::targets::InitializationConfig;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::PointerValue;
 use std::alloc::Layout;
@@ -245,6 +246,7 @@ impl LlvmJit {
 
         // - Create function for the bf program
         // let context = context::create();
+
         let context = &self.context;
         let void_type = context.void_type();
         let module = context.create_module("bf_module");
@@ -298,12 +300,35 @@ impl LlvmJit {
                 &mut matching_blocks,
             );
         }
+        builder.build_return(None);
 
-        println!("{}", module.to_string());
+        // unsafe {
+        //     LLVM_InitializeNativeTarget();
+        //     LLVM_InitializeNativeAsmPrinter();
+        // }
+
+        let execution_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .expect("Failed to create execution engine");
+
+        unsafe {
+            let bf_fn = execution_engine
+                .get_function::<unsafe extern "C" fn() -> ()>(JIT_FUNC_NAME)
+                .unwrap();
+            bf_fn.call();
+            // let return_value = test_fn.call();
+            // assert_eq!(return_value, 64.0);
+        }
+        // execution_engine.get_function()
+
+        // module.create_ji
+        // println!("{}", module.to_string());
     }
     pub fn parse_and_run(src_code: String) {
         // Get the program parsed to bytecode
         let prog = Parser::parse_to_bytecode(src_code);
+        inkwell::targets::Target::initialize_native(&InitializationConfig::default())
+            .expect("Failed to initialize native target");
         let context = Context::create();
         let compiler = Self { context };
 
