@@ -8,7 +8,6 @@ use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::PointerValue;
 use std::alloc::Layout;
 use std::io::Read;
-use std::path::Path;
 
 extern "C" fn putchar(c: u32) -> u32 {
     unsafe {
@@ -25,8 +24,6 @@ extern "C" fn getchar() -> u32 {
 const JIT_FUNC_NAME: &'static str = "__llvm_jit";
 const PUTCHAR: &'static str = "putchar";
 const GETCHAR: &'static str = "getchar";
-// let dataptr =
-//     builder.build_load(context.i64_type(), dataptr_addr, "load_dataptr");
 #[macro_export]
 macro_rules! load {
     ($builder: expr, $data: expr, $type: expr) => {
@@ -60,7 +57,6 @@ impl LlvmJit {
             ByteCode::DataPointerIncr(offset) | ByteCode::DataPointerDecr(offset) => {
                 // *dataptr_addr ( +/- )= offset;
                 let dataptr = load!(builder, dataptr_addr, context.i64_type());
-                // builder.build_load(context.i64_type(), dataptr_addr, "load_dataptr");
                 let new_dataptr = match instruction {
                     ByteCode::DataPointerIncr(_) => builder.build_int_add(
                         dataptr.into_int_value(),
@@ -148,11 +144,6 @@ impl LlvmJit {
                 builder.build_store(elem_addr, elem);
             }
             ByteCode::JZ => {
-                let loop_body_bb =
-                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "body");
-                let loop_end_bb =
-                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "end");
-                builder.position_at_end(loop_body_bb);
                 let dataptr = load!(builder, dataptr_addr, context.i64_type());
                 let offset = gep!(
                     builder,
@@ -167,11 +158,18 @@ impl LlvmJit {
                     context.i8_type().const_int(0, false),
                     "cmp_0",
                 );
+
+                let loop_body_bb =
+                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "body");
+                let loop_end_bb =
+                    context.append_basic_block(module.get_function(JIT_FUNC_NAME).unwrap(), "end");
                 builder.build_conditional_branch(compare.into(), loop_end_bb, loop_body_bb);
+                builder.position_at_end(loop_body_bb);
                 matching_blocks.push((loop_body_bb, loop_end_bb));
             }
             ByteCode::JNZ => {
                 let (open_label, close_label) = matching_blocks.pop().expect("Invalid program");
+
                 let dataptr = load!(builder, dataptr_addr, context.i64_type());
                 let offset = gep!(
                     builder,
@@ -202,19 +200,8 @@ impl LlvmJit {
             }
 
             ByteCode::MoveInStepUntilZero(chng) => {
-                // let cur_dc = &mut data_counter; // same as dataptr_addr
-                // while memory[*cur_dc] != 0 { // same as memory[*dataptr_addr]
-                //     *cur_dc = match chng {
-                //         Change::Incr(x) => *cur_dc + x,
-                //         Change::Decr(x) => *cur_dc - x,
-                //     }
-                // }
-                //
-                // (ByteCode::JZ, ByteCode::DataPointerIncr(x), ByteCode::JNZ)
-                // (ByteCode::JZ, ByteCode::DataPointerDecr(x), ByteCode::JNZ)
                 self.jit_instr(
                     ByteCode::JZ,
-                    // context,
                     module,
                     builder,
                     dataptr_addr,
@@ -226,7 +213,6 @@ impl LlvmJit {
                         Change::Incr(x) => ByteCode::DataPointerIncr(x),
                         Change::Decr(x) => ByteCode::DataPointerDecr(x),
                     },
-                    // context,
                     module,
                     builder,
                     dataptr_addr,
@@ -235,7 +221,6 @@ impl LlvmJit {
                 );
                 self.jit_instr(
                     ByteCode::JNZ,
-                    // context,
                     module,
                     builder,
                     dataptr_addr,
@@ -319,15 +304,13 @@ impl LlvmJit {
         // println!("{}", module.to_string());
 
         let execution_engine = module
-            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .create_jit_execution_engine(inkwell::OptimizationLevel::Aggressive)
             .expect("Failed to create execution engine");
 
-        println!("About to get {}", JIT_FUNC_NAME);
         unsafe {
             let bf_fn = execution_engine
                 .get_function::<unsafe extern "C" fn() -> ()>(JIT_FUNC_NAME)
                 .unwrap();
-            println!("Calling {}", JIT_FUNC_NAME);
             bf_fn.call();
         }
     }
@@ -357,9 +340,6 @@ mod tests {
             context: Context::create(),
         };
 
-        // prints 'hi\n' correctly(means I'm messing up the jump instructions mostly)
-        //
-        // TODO: I think not all basic blocks end with terminator instruction(have to take care of this during codegen)
         compiler.jit(vec![
             ByteCode::DataIncr(104), //'h'
             ByteCode::Write,
@@ -370,7 +350,7 @@ mod tests {
             ByteCode::Write,
         ]); // Works
 
-        // This also works fine so putchar/getchar workf ine
+        // This also works fine so putchar/getchar work fine
         // compiler.jit(vec![ByteCode::Read, ByteCode::Write]); // Works
     }
 
